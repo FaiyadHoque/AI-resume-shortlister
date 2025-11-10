@@ -1,0 +1,48 @@
+JOHN DOE
+Senior Software Engineer
+
+OBJECTIVE:
+Experienced software engineer seeking challenging opportunities in machine learning 
+and AI development to leverage 5+ years of expertise in building scalable systems.
+
+EDUCATION:
+• Master of Science in Computer Science - Stanford University (2018)
+• Bachelor of Science in Computer Science - MIT (2016)
+
+TECHNICAL SKILLS:
+• Programming Languages: Python, Java, C++, JavaScript, SQL
+• Machine Learning: TensorFlow, PyTorch, Scikit-learn, Keras
+• Data Science: Pandas, NumPy, Matplotlib, Seaborn
+• Cloud Platforms: AWS (EC2, S3, Lambda), Azure, Google Cloud
+• Databases: PostgreSQL, MongoDB, Redis, MySQL
+• Tools: Docker, Kubernetes, Git, Jenkins, JIRA
+
+PROFESSIONAL EXPERIENCE:
+
+Senior Software Engineer | Tech Innovations Inc | 2020 - Present
+• Developed and deployed machine learning models for customer behavior prediction with 92% accuracy
+• Built scalable data pipelines processing 2M+ records daily using Python and Apache Spark
+• Implemented RESTful APIs using Django and Flask serving 10K+ requests per second
+• Led team of 4 engineers in migrating legacy systems to cloud-based microservices architecture
+• Reduced system latency by 45% through optimization and caching strategies
+
+Software Engineer | Data Solutions Corp | 2018 - 2020
+• Created predictive models for sales forecasting achieving 88% accuracy
+• Developed automated data analysis tools reducing manual work by 60%
+• Built real-time dashboards using React and D3.js for business intelligence
+• Collaborated with product team to design and implement new features
+
+PROJECTS:
+• Resume Matching System: Built ML model with 85% accuracy for resume-job matching
+• Customer Churn Prediction: Developed deep learning model using LSTM networks
+• Image Classification App: Created CNN-based mobile app for real-time object detection
+• Sentiment Analysis Tool: NLP pipeline for social media sentiment analysis
+
+CERTIFICATIONS:
+• AWS Certified Solutions Architect
+• Google Cloud Professional Data Engineer
+• TensorFlow Developer Certificate
+
+PUBLICATIONS:
+• "Deep Learning for Natural Language Processing" - AI Conference 2021
+• "Scalable Machine Learning Systems" - Tech Journal 2020

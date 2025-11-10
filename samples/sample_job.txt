@@ -1,0 +1,72 @@
+SENIOR SOFTWARE ENGINEER (MACHINE LEARNING FOCUS)
+
+COMPANY: AI Innovations Inc
+LOCATION: San Francisco, CA / Remote
+TYPE: Full-time
+SALARY: $150,000 - $200,000
+
+ABOUT US:
+AI Innovations Inc is a cutting-edge technology company building the next generation 
+of AI-powered products. We're looking for talented engineers to join our growing team.
+
+JOB DESCRIPTION:
+We are seeking an experienced Senior Software Engineer with strong expertise in Machine 
+Learning to design, develop, and deploy scalable AI solutions. You will work on challenging 
+problems and collaborate with world-class engineers and data scientists.
+
+REQUIRED QUALIFICATIONS:
+
+Education:
+• Bachelor's or Master's degree in Computer Science, Engineering, or related field
+• PhD is a plus but not required
+
+Experience:
+• 4+ years of professional software engineering experience
+• 2+ years of hands-on experience with machine learning and AI
+• Proven track record of building and deploying ML models in production
+• Experience with large-scale distributed systems
+
+Technical Skills:
+• Strong proficiency in Python (required)
+• Experience with ML frameworks: TensorFlow, PyTorch, or Scikit-learn
+• Solid understanding of data structures, algorithms, and software design patterns
+• Experience with SQL and NoSQL databases
+• Proficiency with cloud platforms (AWS, Azure, or GCP)
+• Knowledge of RESTful APIs and microservices architecture
+• Familiarity with containerization (Docker, Kubernetes)
+• Experience with version control (Git)
+
+RESPONSIBILITIES:
+• Design, implement, and maintain machine learning models and systems
+• Build and optimize ML pipelines for training and inference
+• Collaborate with data scientists to productionize ML models
+• Write clean, maintainable, and well-documented code
+• Participate in code reviews and provide constructive feedback
+• Mentor junior engineers and contribute to team knowledge sharing
+• Stay updated with latest ML/AI trends and best practices
+• Work with product team to understand requirements and deliver solutions
+
+NICE TO HAVE:
+• Experience with deep learning and neural networks
+• Knowledge of NLP, computer vision, or recommendation systems
+• Contributions to open-source ML projects
+• Experience with A/B testing and experiment design
+• Publications in ML/AI conferences or journals
+• Strong communication and presentation skills
+
+WHAT WE OFFER:
+• Competitive salary and equity compensation
+• Comprehensive health, dental, and vision insurance
+• Flexible work arrangements (remote-friendly)
+• Generous PTO and parental leave
+• Professional development budget
+• Latest hardware and tools
+• Collaborative and innovative work environment
+• Opportunity to work on cutting-edge AI projects
+• Regular team events and activities
+
+HOW TO APPLY:
+Please submit your resume, cover letter, and any relevant project links or portfolio.
+We review applications on a rolling basis.
+
+AI Innovations Inc is an equal opportunity employer committed to diversity and inclusion.
