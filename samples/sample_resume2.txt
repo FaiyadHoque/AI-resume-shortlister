@@ -1,0 +1,49 @@
+SARAH JOHNSON
+Senior Mechanical Engineer
+
+OBJECTIVE:
+Experienced mechanical engineer seeking challenging opportunities in product design 
+and manufacturing to leverage 6+ years of expertise in developing innovative solutions.
+
+EDUCATION:
+• Master of Science in Mechanical Engineering - Georgia Institute of Technology (2017)
+• Bachelor of Science in Mechanical Engineering - University of Michigan (2015)
+
+TECHNICAL SKILLS:
+• CAD Software: SolidWorks, AutoCAD, CATIA, Fusion 360, Inventor
+• Analysis Tools: ANSYS, MATLAB, Simulink, COMSOL Multiphysics
+• Manufacturing: CNC Machining, 3D Printing, Injection Molding, Sheet Metal Fabrication
+• Programming: Python, C++, MATLAB, LabVIEW
+• Standards: GD&T, ASME Y14.5, ISO 9001, Six Sigma
+• Tools: MS Project, JIRA, Git, PLM Systems
+
+PROFESSIONAL EXPERIENCE:
+
+Senior Mechanical Engineer | Advanced Manufacturing Corp | 2019 - Present
+• Designed and developed mechanical systems for automated production lines with 30% efficiency improvement
+• Led cross-functional team of 5 engineers in developing new product line generating $2M annual revenue
+• Performed FEA and CFD analysis reducing prototype iterations by 40% and saving $150K in development costs
+• Optimized manufacturing processes resulting in 25% reduction in production time
+• Managed vendor relationships and negotiated contracts saving company $200K annually
+
+Mechanical Engineer | Precision Dynamics Inc | 2017 - 2019
+• Designed custom mechanical components for aerospace applications meeting strict tolerance requirements
+• Conducted thermal and structural analysis ensuring product reliability in extreme conditions
+• Created detailed engineering drawings and technical documentation following ASME standards
+• Collaborated with manufacturing team to improve producibility and reduce costs by 15%
+
+PROJECTS:
+• Robotic Arm System: Designed 6-DOF robotic arm for precision assembly with 0.1mm repeatability
+• HVAC Optimization: Developed energy-efficient cooling system reducing power consumption by 35%
+• Automated Testing Rig: Created custom test fixture reducing testing time from 2 hours to 20 minutes
+• Electric Vehicle Component: Designed lightweight battery housing reducing weight by 20% while maintaining strength
+
+CERTIFICATIONS:
+• Professional Engineer (PE) License - Mechanical Engineering
+• Certified SolidWorks Professional (CSWP)
+• Six Sigma Green Belt
+• Project Management Professional (PMP)
+
+PUBLICATIONS:
+• "Finite Element Analysis of Composite Materials in Automotive Applications" - ASME Journal 2020
+• "Advanced Manufacturing Techniques for Aerospace Components" - SAE International 2019
