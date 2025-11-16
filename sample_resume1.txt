@@ -1,0 +1,77 @@
+JIM HALBERT
+Frontend Developer
+
+OBJECTIVE:
+Experienced frontend developer seeking challenging opportunities in modern web development to leverage 5+ years of expertise in building responsive, user-friendly applications.
+
+EDUCATION:
+
+Bachelor of Science in Computer Science – University of California, Berkeley (2018)
+
+Frontend Web Development Nanodegree – Udacity (2019)
+
+TECHNICAL SKILLS:
+
+Languages: JavaScript (ES6+), TypeScript, HTML5, CSS3, Sass, JSX
+
+Frameworks & Libraries: React, Angular, Vue.js, Next.js, Redux, Vuex
+
+Styling: CSS-in-JS (Styled Components, Emotion), Tailwind CSS, Bootstrap, Material-UI
+
+Tools & Platforms: Webpack, Babel, npm/yarn, Git, Jenkins, Docker, AWS, Netlify, Vercel
+
+Testing: Jest, Cypress, React Testing Library, Mocha
+
+Design Tools: Figma, Adobe XD, Sketch
+
+Other: RESTful APIs, GraphQL, PWA, Web Performance Optimization, Agile/Scrum
+
+PROFESSIONAL EXPERIENCE:
+
+Frontend Developer | Web Solutions Inc. | 2020 – Present
+
+Developed and maintained 10+ responsive web applications using React and TypeScript, serving 50,000+ monthly users
+
+Improved application performance by 40% through code splitting, lazy loading, and optimized asset delivery
+
+Led the migration from class components to functional components with React Hooks, reducing codebase size by 30%
+
+Collaborated with UX/UI designers to implement pixel-perfect, accessible components using Storybook and Figma
+
+Integrated RESTful and GraphQL APIs, reducing data fetching time by 25% through efficient caching strategies
+
+Junior Frontend Developer | Creative Digital Agency | 2018 – 2020
+
+Built interactive websites and landing pages using Vue.js and Angular for 20+ clients across e-commerce, healthcare, and finance
+
+Implemented mobile-first, cross-browser compatible designs using Sass and CSS Grid/Flexbox
+
+Wrote unit and integration tests with Jest and Cypress, achieving 90% test coverage
+
+Participated in daily stand-ups, sprint planning, and code reviews in an Agile environment
+
+PROJECTS:
+
+E-Commerce Dashboard: Built a real-time analytics dashboard with React, Redux, and D3.js, handling 1M+ data points
+
+Travel Booking PWA: Created a Progressive Web App with offline capabilities, resulting in a 20% increase in mobile conversions
+
+Design System: Developed a reusable component library with Storybook, improving team productivity by 35%
+
+Portfolio Generator: Designed a tool for users to build and deploy portfolios using Next.js and Tailwind CSS
+
+CERTIFICATIONS:
+
+Google Mobile Web Specialist
+
+AWS Certified Developer – Associate
+
+Frontend Masters – Advanced JavaScript
+
+freeCodeCamp – Responsive Web Design
+
+PUBLICATIONS & TALKS:
+
+"Building Scalable Design Systems" – Frontend Conference 2022
+
+"Optimizing React Performance in 2023" – JS Monthly Meetup
