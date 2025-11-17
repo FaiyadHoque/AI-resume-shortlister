@@ -7,13 +7,30 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.py[cod]
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
 *-checkpoint.ipynb
 
 # Version files to ignore
-Version4.ipynb
+notebooks/Version4.ipynb
+
+# Old model files (keep only v2)
+models/*_model.pkl
+!models/*_model_v2.pkl
+models/feature_scaler.pkl
+models/job_vectorizer.pkl
+models/resume_vectorizer.pkl
+models/model_metadata.json
+
+# Old outputs
+outputs/model_comparison.png
+outputs/predictions.png
+
+# Test files
+test_results.csv
+test_*.py
 
 # OS files
 .DS_Store
@@ -29,3 +46,4 @@ Thumbs.db
 venv/
 env/
 ENV/
+.venv

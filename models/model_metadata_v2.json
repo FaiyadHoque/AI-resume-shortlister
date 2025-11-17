@@ -1,21 +1,30 @@
 {
-    "training_date": "20251110_230129",
+    "version": "2.0_improved",
+    "training_date": "20251117_180624",
     "dataset_size": 9542,
-    "n_features": 101,
+    "n_features": 111,
     "resume_tfidf_features": 50,
     "job_tfidf_features": 50,
+    "skill_features": 11,
+    "improvements": [
+        "Technical skill matching",
+        "Soft skill matching",
+        "Education level detection",
+        "Experience years extraction",
+        "Skill coverage ratios"
+    ],
     "models": {
         "random_forest": {
-            "test_r2": 0.5069958640364892,
-            "test_rmse": 0.11772875190035147,
-            "test_mae": 0.09117558888307452,
-            "train_test_gap": 0.10009338293362557
+            "test_r2": 0.5200777976526346,
+            "test_rmse": 0.11615627586008259,
+            "test_mae": 0.08949080110376297,
+            "train_test_gap": 0.13331557158734209
         },
         "xgboost": {
-            "test_r2": 0.5230713099196262,
-            "test_rmse": 0.11579344710301122,
-            "test_mae": 0.09046766735485941,
-            "train_test_gap": 0.049337560705470684
+            "test_r2": 0.5729379927547371,
+            "test_rmse": 0.10957279175963372,
+            "test_mae": 0.08460683110527777,
+            "train_test_gap": 0.10198819824510208
         }
     },
     "feature_names": [
@@ -119,6 +128,20 @@
         "job_tfidf_47",
         "job_tfidf_48",
         "job_tfidf_49",
+        "tech_skill_matches",
+        "tech_skill_ratio",
+        "soft_skill_matches",
+        "soft_skill_ratio",
+        "education_match",
+        "education_gap",
+        "experience_match",
+        "experience_gap",
+        "overall_skill_ratio",
+        "total_skill_matches",
         "tfidf_similarity"
-    ]
+    ],
+    "skill_categories": {
+        "tech_skills": 76,
+        "soft_skills": 14
+    }
 }
