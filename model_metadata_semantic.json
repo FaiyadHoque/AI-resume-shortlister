@@ -1,0 +1,21 @@
+{
+  "model_type": "semantic_embeddings",
+  "embedding_model": "all-MiniLM-L6-v2",
+  "embedding_dim": 384,
+  "total_features": 771,
+  "training_samples": 14034,
+  "test_samples": 3509,
+  "random_forest": {
+    "train_r2": 0.8613533584937767,
+    "test_r2": 0.8489410245330087,
+    "train_mae": 0.0711729938310044,
+    "test_mae": 0.07444544171920917
+  },
+  "xgboost": {
+    "train_r2": 0.8592577733673993,
+    "test_r2": 0.8491739540766908,
+    "train_mae": 0.07442051977224425,
+    "test_mae": 0.0773051386778484
+  },
+  "best_model": "xgboost"
+}
