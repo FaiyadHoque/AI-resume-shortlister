@@ -4,38 +4,111 @@ Handles all database operations for candidates, jobs, and match results
 """
 
 import sqlite3
+import time
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from functools import wraps
+
+
+def retry_on_lock(max_retries=10, delay=0.1):
+    """Decorator to retry database operations on lock"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except sqlite3.OperationalError as e:
+                    if 'locked' in str(e).lower() and attempt < max_retries - 1:
+                        time.sleep(delay * (attempt + 1))
+                        continue
+                    raise
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 class Database:
-    """SQLite database manager for resume shortlister"""
+    """SQLite database manager for resume shortlister with connection pooling"""
+
+    _instance = None
+    _lock = threading.Lock()
+    _connection = None
+
+    def __new__(cls, db_path: str = "database/resume_shortlister.db"):
+        """Singleton pattern to ensure only one database instance"""
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super(Database, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self, db_path: str = "database/resume_shortlister.db"):
         """Initialize database connection"""
-        self.db_path = db_path
-        # Create database directory if it doesn't exist
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self.init_database()
+        # Only initialize once
+        if not hasattr(self, '_initialized'):
+            self.db_path = db_path
+            # Create database directory if it doesn't exist
+            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+            self._connection_lock = threading.RLock()
+            self._initialize_connection()
+            self.init_database()
+            self._initialized = True
+
+    def _initialize_connection(self):
+        """Initialize persistent database connection"""
+        if self._connection is None:
+            self._connection = sqlite3.connect(
+                self.db_path,
+                timeout=120.0,  # 2 minutes timeout
+                check_same_thread=False,
+                isolation_level=None  # Autocommit mode
+            )
+            self._connection.row_factory = sqlite3.Row
+            # Disable WAL mode - use DELETE journal mode for better compatibility
+            self._connection.execute('PRAGMA journal_mode=DELETE')
+            self._connection.execute('PRAGMA busy_timeout=120000')
+            self._connection.execute('PRAGMA synchronous=FULL')  # Safer writes
+            self._connection.execute('PRAGMA cache_size=10000')
+            self._connection.execute('PRAGMA temp_store=MEMORY')
+            self._connection.execute('PRAGMA locking_mode=NORMAL')
 
     def get_connection(self) -> sqlite3.Connection:
-        """Get database connection"""
-        conn = sqlite3.Connection(self.db_path)
-        conn.row_factory = sqlite3.Row  # Enable column access by name
-        return conn
+        """Get the persistent database connection"""
+        with self._connection_lock:
+            if self._connection is None:
+                self._initialize_connection()
+            return self._connection
+
+    def execute_query(self, query: str, params: tuple = (), fetch_one: bool = False, fetch_all: bool = False):
+        """Execute query with proper locking"""
+        with self._connection_lock:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            
+            if fetch_one:
+                result = cursor.fetchone()
+                return dict(result) if result else None
+            elif fetch_all:
+                return [dict(row) for row in cursor.fetchall()]
+            else:
+                return cursor.lastrowid
 
     def init_database(self):
         """Initialize database with schema"""
         schema_path = Path(__file__).parent / "schema.sql"
 
-        with self.get_connection() as conn:
+        with self._connection_lock:
+            conn = self.get_connection()
             with open(schema_path, 'r') as f:
                 conn.executescript(f.read())
-            conn.commit()
 
     # ==================== CANDIDATE OPERATIONS ====================
 
+    @retry_on_lock(max_retries=10, delay=0.1)
     def add_candidate(self, candidate_data: Dict) -> int:
         """
         Add a new candidate to database
@@ -54,44 +127,34 @@ class Database:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (
-                candidate_data.get('name', ''),
-                candidate_data.get('email', ''),
-                candidate_data.get('phone', ''),
-                candidate_data.get('objective', ''),
-                candidate_data.get('education', ''),
-                candidate_data.get('skills', ''),
-                candidate_data.get('experience_years', 0),
-                candidate_data.get('experience_details', ''),
-                candidate_data.get('projects', ''),
-                candidate_data.get('certifications', ''),
-                candidate_data.get('resume_text', ''),
-                candidate_data.get('resume_filename', '')
-            ))
-            conn.commit()
-            return cursor.lastrowid
+        return self.execute_query(query, (
+            candidate_data.get('name', ''),
+            candidate_data.get('email', ''),
+            candidate_data.get('phone', ''),
+            candidate_data.get('objective', ''),
+            candidate_data.get('education', ''),
+            candidate_data.get('skills', ''),
+            candidate_data.get('experience_years', 0),
+            candidate_data.get('experience_details', ''),
+            candidate_data.get('projects', ''),
+            candidate_data.get('certifications', ''),
+            candidate_data.get('resume_text', ''),
+            candidate_data.get('resume_filename', '')
+        ))
 
+    @retry_on_lock(max_retries=10, delay=0.1)
     def get_candidate(self, candidate_id: int) -> Optional[Dict]:
         """Get candidate by ID"""
         query = "SELECT * FROM candidates WHERE id = ?"
+        return self.execute_query(query, (candidate_id,), fetch_one=True)
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (candidate_id,))
-            row = cursor.fetchone()
-            return dict(row) if row else None
-
+    @retry_on_lock(max_retries=10, delay=0.1)
     def get_all_candidates(self, limit: int = 100) -> List[Dict]:
         """Get all candidates"""
         query = "SELECT * FROM candidates ORDER BY created_at DESC LIMIT ?"
+        return self.execute_query(query, (limit,), fetch_all=True)
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (limit,))
-            return [dict(row) for row in cursor.fetchall()]
-
+    @retry_on_lock(max_retries=10, delay=0.1)
     def search_candidates(self, search_term: str) -> List[Dict]:
         """Search candidates by name or email"""
         query = """
@@ -100,23 +163,17 @@ class Database:
             ORDER BY created_at DESC
         """
         search_pattern = f"%{search_term}%"
+        return self.execute_query(query, (search_pattern, search_pattern), fetch_all=True)
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (search_pattern, search_pattern))
-            return [dict(row) for row in cursor.fetchall()]
-
+    @retry_on_lock(max_retries=10, delay=0.1)
     def delete_candidate(self, candidate_id: int):
         """Delete candidate and associated match results"""
         query = "DELETE FROM candidates WHERE id = ?"
-
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (candidate_id,))
-            conn.commit()
+        self.execute_query(query, (candidate_id,))
 
     # ==================== JOB POST OPERATIONS ====================
 
+    @retry_on_lock(max_retries=10, delay=0.1)
     def add_job_post(self, job_data: Dict) -> int:
         """
         Add a new job post to database
@@ -135,33 +192,26 @@ class Database:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (
-                job_data.get('title', ''),
-                job_data.get('company', ''),
-                job_data.get('location', ''),
-                job_data.get('job_type', ''),
-                job_data.get('description', ''),
-                job_data.get('required_skills', ''),
-                job_data.get('required_education', ''),
-                job_data.get('required_experience_years', 0),
-                job_data.get('salary_range', ''),
-                job_data.get('status', 'active')
-            ))
-            conn.commit()
-            return cursor.lastrowid
+        return self.execute_query(query, (
+            job_data.get('title', ''),
+            job_data.get('company', ''),
+            job_data.get('location', ''),
+            job_data.get('job_type', ''),
+            job_data.get('description', ''),
+            job_data.get('required_skills', ''),
+            job_data.get('required_education', ''),
+            job_data.get('required_experience_years', 0),
+            job_data.get('salary_range', ''),
+            job_data.get('status', 'active')
+        ))
 
+    @retry_on_lock(max_retries=10, delay=0.1)
     def get_job_post(self, job_id: int) -> Optional[Dict]:
         """Get job post by ID"""
         query = "SELECT * FROM job_posts WHERE id = ?"
+        return self.execute_query(query, (job_id,), fetch_one=True)
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (job_id,))
-            row = cursor.fetchone()
-            return dict(row) if row else None
-
+    @retry_on_lock(max_retries=10, delay=0.1)
     def get_all_job_posts(self, status: str = 'active', limit: int = 100) -> List[Dict]:
         """Get all job posts"""
         if status == 'all':
@@ -171,31 +221,37 @@ class Database:
             query = "SELECT * FROM job_posts WHERE status = ? ORDER BY created_at DESC LIMIT ?"
             params = (status, limit)
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, params)
-            return [dict(row) for row in cursor.fetchall()]
+        return self.execute_query(query, params, fetch_all=True)
 
+    @retry_on_lock(max_retries=10, delay=0.1)
     def update_job_status(self, job_id: int, status: str):
         """Update job post status"""
         query = "UPDATE job_posts SET status = ?, updated_at = ? WHERE id = ?"
 
-        with self.get_connection() as conn:
+        conn = self.get_connection()
+        try:
             cursor = conn.cursor()
             cursor.execute(query, (status, datetime.now(), job_id))
             conn.commit()
+        finally:
+            conn.close()
 
+    @retry_on_lock(max_retries=5, delay=0.3)
     def delete_job_post(self, job_id: int):
         """Delete job post and associated match results"""
         query = "DELETE FROM job_posts WHERE id = ?"
 
-        with self.get_connection() as conn:
+        conn = self.get_connection()
+        try:
             cursor = conn.cursor()
             cursor.execute(query, (job_id,))
             conn.commit()
+        finally:
+            conn.close()
 
     # ==================== MATCH RESULTS OPERATIONS ====================
 
+    @retry_on_lock(max_retries=5, delay=0.3)
     def save_match_result(self, candidate_id: int, job_id: int, match_score: float):
         """
         Save or update match result
@@ -226,11 +282,14 @@ class Database:
                 matched_at = CURRENT_TIMESTAMP
         """
 
-        with self.get_connection() as conn:
+        conn = self.get_connection()
+        try:
             cursor = conn.cursor()
             cursor.execute(
                 query, (candidate_id, job_id, match_score, category))
             conn.commit()
+        finally:
+            conn.close()
 
     def get_matches_for_job(self, job_id: int, min_score: float = 0.0) -> List[Dict]:
         """

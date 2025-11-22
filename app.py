@@ -10,37 +10,118 @@ import tempfile
 from datetime import datetime
 
 from database.db_manager import get_db
-from pdf_extractor import extract_resume
+from gemini_client import extract_resume_via_gemini, parse_resume_text
 from matching_engine import get_matching_engine
 
 
 # Page configuration
 st.set_page_config(
-    page_title="AI Resume Shortlister",
+    page_title="AI RESUME SHORTLISTER",
     page_icon="📄",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS - Theme-adaptive styling that works in both light and dark modes
 st.markdown("""
     <style>
+    /* Full-width rectangular sidebar buttons */
+    [data-testid="stSidebar"] .stButton > button {
+        width: 100% !important;
+        text-align: left !important;
+        padding: 14px 20px !important;
+        border-radius: 8px !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
+        margin-bottom: 8px !important;
+        transition: all 0.2s ease !important;
+        border: 2px solid rgba(128, 128, 128, 0.3) !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button:hover {
+        transform: translateX(4px) !important;
+        border-color: rgba(102, 126, 234, 0.6) !important;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2) !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button:active {
+        transform: translateX(2px) !important;
+    }
+    
+    /* Main header styling */
     .main-header {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: bold;
-        color: #1f77b4;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 3px solid rgba(102, 126, 234, 0.5);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
-    .metric-card {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #f0f2f6;
-        margin-bottom: 1rem;
+    
+    /* Match category colors - work in both light and dark modes */
+    .match-excellent { 
+        background: linear-gradient(90deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.05) 100%);
+        padding: 0.75rem; 
+        border-radius: 8px;
+        border-left: 4px solid #28a745;
+        margin: 0.5rem 0;
     }
-    .match-excellent { background-color: #d4edda; padding: 0.5rem; border-radius: 0.3rem; }
-    .match-good { background-color: #fff3cd; padding: 0.5rem; border-radius: 0.3rem; }
-    .match-moderate { background-color: #f8d7da; padding: 0.5rem; border-radius: 0.3rem; }
-    .match-poor { background-color: #e2e3e5; padding: 0.5rem; border-radius: 0.3rem; }
+    .match-good { 
+        background: linear-gradient(90deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.05) 100%);
+        padding: 0.75rem; 
+        border-radius: 8px;
+        border-left: 4px solid #ffc107;
+        margin: 0.5rem 0;
+    }
+    .match-moderate { 
+        background: linear-gradient(90deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 152, 0, 0.05) 100%);
+        padding: 0.75rem; 
+        border-radius: 8px;
+        border-left: 4px solid #ff9800;
+        margin: 0.5rem 0;
+    }
+    .match-poor { 
+        background: linear-gradient(90deg, rgba(220, 53, 69, 0.15) 0%, rgba(220, 53, 69, 0.05) 100%);
+        padding: 0.75rem; 
+        border-radius: 8px;
+        border-left: 4px solid #dc3545;
+        margin: 0.5rem 0;
+    }
+    
+    /* Primary button styling */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border: none !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+    }
+    
+    /* Card-like containers */
+    .stExpander {
+        border-radius: 8px !important;
+        border: 1px solid rgba(128, 128, 128, 0.2) !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Text input focus */
+    .stTextInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+    }
+    
+    /* Improve spacing */
+    .element-container {
+        margin-bottom: 0.5rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -99,13 +180,14 @@ def dashboard_page():
             'match_category': 'Category',
             'matched_at': 'Date'
         })
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width='stretch')
     else:
         st.info("No matches yet. Upload resumes and add jobs to get started!")
 
 
 def upload_resume_page():
     """Page for uploading resume PDFs"""
+    # Centered app title
     st.markdown('<div class="main-header">📤 Upload Resume</div>',
                 unsafe_allow_html=True)
 
@@ -116,44 +198,82 @@ def upload_resume_page():
         st.session_state.resume_saved = False
 
     uploaded_file = st.file_uploader(
-        "Choose a PDF resume file",
+        "Choose a PDF resume file (optional)",
         type=['pdf'],
         help="Upload a candidate's resume in PDF format"
     )
 
-    if uploaded_file is not None:
-        # Show file details
+    pasted_text = st.text_area(
+        "Or paste resume text here (optional)", height=200)
+
+    if uploaded_file:
         st.write(f"**Filename:** {uploaded_file.name}")
         st.write(f"**Size:** {uploaded_file.size / 1024:.2f} KB")
 
-        if st.button("Extract Information", type="primary"):
-            with st.spinner("Extracting information from PDF..."):
-                # Save to temporary file
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    with col1:
+        if st.button("🛰️ Use Gemini (file)") and uploaded_file:
+            with st.spinner("Calling Gemini to extract resume..."):
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
                     tmp_file.write(uploaded_file.getvalue())
                     tmp_path = tmp_file.name
-
                 try:
-                    # Extract resume data
-                    resume_data = extract_resume(tmp_path)
+                    resume_data = extract_resume_via_gemini(file_path=tmp_path)
                     resume_data['resume_filename'] = uploaded_file.name
-                    
-                    # Store in session state
                     st.session_state.extracted_resume = resume_data
                     st.session_state.resume_saved = False
-                    st.success("✅ Information extracted successfully!")
+                    st.success("✅ Information extracted (Gemini)!")
                     st.rerun()
-
                 except Exception as e:
-                    st.error(f"❌ Error extracting resume: {str(e)}")
+                    st.error(f"❌ Gemini extraction failed: {e}")
+                    st.session_state.extracted_resume = None
+
+    with col2:
+        if st.button("🔎 Parse Pasted Text") and pasted_text:
+            with st.spinner("Parsing pasted text..."):
+                try:
+                    resume_data = parse_resume_text(pasted_text)
+                    resume_data['resume_filename'] = 'pasted_text'
+                    st.session_state.extracted_resume = resume_data
+                    st.session_state.resume_saved = False
+                    st.success("✅ Text parsed successfully!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Parsing failed: {e}")
+                    st.session_state.extracted_resume = None
+
+    with col3:
+        # Alternative: use Gemini on pasted text if available
+        if st.button("🛰️ Use Gemini (text)") and (pasted_text or uploaded_file):
+            with st.spinner("Calling Gemini to extract from text..."):
+                try:
+                    if pasted_text:
+                        resume_data = extract_resume_via_gemini(
+                            text=pasted_text)
+                        resume_data['resume_filename'] = 'pasted_text'
+                    else:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                            tmp_file.write(uploaded_file.getvalue())
+                            tmp_path = tmp_file.name
+                        resume_data = extract_resume_via_gemini(
+                            file_path=tmp_path)
+                        resume_data['resume_filename'] = uploaded_file.name
+
+                    st.session_state.extracted_resume = resume_data
+                    st.session_state.resume_saved = False
+                    st.success("✅ Gemini extraction complete!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Gemini extraction failed: {e}")
                     st.session_state.extracted_resume = None
 
     # Display extracted information if available
     if st.session_state.extracted_resume:
         resume_data = st.session_state.extracted_resume
-        
+
         st.divider()
-        
+
         col1, col2 = st.columns(2)
 
         with col1:
@@ -161,24 +281,31 @@ def upload_resume_page():
             st.write(f"**Name:** {resume_data.get('name', 'Unknown')}")
             st.write(f"**Email:** {resume_data.get('email') or 'Not found'}")
             st.write(f"**Phone:** {resume_data.get('phone') or 'Not found'}")
-            st.write(f"**Experience:** {resume_data.get('experience_years', 0)} years")
+            st.write(
+                f"**Experience:** {resume_data.get('experience_years', 0)} years")
 
         with col2:
             st.subheader("💼 Skills")
             if resume_data.get('skills'):
-                st.text_area("", resume_data['skills'][:300], height=150, disabled=True)
+                skills_text = str(
+                    resume_data['skills']) if resume_data['skills'] else ""
+                st.text_area(
+                    "Skills", skills_text[:300], height=150, disabled=True, label_visibility="collapsed")
             else:
                 st.info("No skills section found")
 
         # Allow editing before saving
         with st.expander("✏️ Edit Information Before Saving"):
             edited_name = st.text_input("Name", resume_data.get('name', ''))
-            edited_email = st.text_input("Email", resume_data.get('email') or '')
-            edited_phone = st.text_input("Phone", resume_data.get('phone') or '')
-            edited_experience = st.number_input("Experience (years)", 
-                                               value=resume_data.get('experience_years', 0),
-                                               min_value=0, max_value=50)
-            
+            edited_email = st.text_input(
+                "Email", resume_data.get('email') or '')
+            edited_phone = st.text_input(
+                "Phone", resume_data.get('phone') or '')
+            edited_experience = st.number_input("Experience (years)",
+                                                value=resume_data.get(
+                                                    'experience_years', 0),
+                                                min_value=0, max_value=50)
+
             # Update resume data with edits
             if edited_name:
                 resume_data['name'] = edited_name
@@ -192,14 +319,17 @@ def upload_resume_page():
         if not st.session_state.resume_saved:
             if st.button("💾 Save to Database", type="primary"):
                 try:
-                    candidate_id = st.session_state.db.add_candidate(resume_data)
+                    candidate_id = st.session_state.db.add_candidate(
+                        resume_data)
                     st.session_state.resume_saved = True
-                    st.success(f"✅ Candidate saved successfully with ID: {candidate_id}")
-                    
+                    st.success(
+                        f"✅ Candidate saved successfully with ID: {candidate_id}")
+
                     # Ask if user wants to match immediately
                     if st.session_state.matching_engine:
-                        st.info("💡 Go to 'View Matches' page to see this candidate's job matches!")
-                    
+                        st.info(
+                            "💡 Go to 'View Matches' page to see this candidate's job matches!")
+
                 except Exception as e:
                     st.error(f"❌ Error saving to database: {str(e)}")
         else:
@@ -212,14 +342,16 @@ def upload_resume_page():
     # Show recent candidates
     st.divider()
     st.subheader("📋 Recent Candidates")
-    
+
     try:
         candidates = st.session_state.db.get_all_candidates(limit=5)
         if candidates:
             df = pd.DataFrame(candidates)
-            display_df = df[['id', 'name', 'email', 'experience_years', 'created_at']].copy()
-            display_df.columns = ['ID', 'Name', 'Email', 'Experience (Years)', 'Added On']
-            st.dataframe(display_df, use_container_width=True)
+            display_df = df[['id', 'name', 'email',
+                             'experience_years', 'created_at']].copy()
+            display_df.columns = ['ID', 'Name', 'Email',
+                                  'Experience (Years)', 'Added On']
+            st.dataframe(display_df, width='stretch')
         else:
             st.info("No candidates yet. Upload a resume to get started!")
     except Exception as e:
@@ -257,8 +389,10 @@ def manage_candidates_page():
                     st.write(f"**Added:** {candidate['created_at']}")
 
                     if candidate['skills']:
+                        skills_text = str(
+                            candidate['skills']) if candidate['skills'] else ""
                         st.text_area(
-                            "Skills", candidate['skills'][:300], height=100, disabled=True, key=f"skills_{candidate['id']}")
+                            "Skills", skills_text[:300], height=100, disabled=True, key=f"skills_{candidate['id']}")
 
                 with col2:
                     if st.button("🔍 Match Jobs", key=f"match_{candidate['id']}"):
@@ -362,8 +496,10 @@ def manage_jobs_page():
                             f"**Experience:** {job['required_experience_years']} years")
                         st.write(f"**Status:** {job['status']}")
                         st.write(f"**Posted:** {job['created_at']}")
+                        desc_text = str(job['description']
+                                        ) if job['description'] else ""
                         st.text_area(
-                            "Description", job['description'][:500], height=150, disabled=True, key=f"desc_{job['id']}")
+                            "Description", desc_text[:500], height=150, disabled=True, key=f"desc_{job['id']}")
 
                     with col2:
                         if st.button("🔍 Match", key=f"match_job_{job['id']}"):
@@ -394,6 +530,7 @@ def manage_jobs_page():
 
 def view_matches_page():
     """Page for viewing match results"""
+    # Centered app title
     st.markdown('<div class="main-header">🎯 Match Results</div>',
                 unsafe_allow_html=True)
 
@@ -509,16 +646,23 @@ def main():
         st.title("📄 AI Resume Shortlister")
         st.markdown("---")
 
-        page = st.radio(
-            "Navigation",
-            ["📊 Dashboard", "📤 Upload Resume",
-                "👥 Candidates", "💼 Job Posts", "🎯 Matches"]
-        )
+        # Navigation as full-width buttons
+        if 'page' not in st.session_state:
+            st.session_state.page = "📊 Dashboard"
+
+        nav_pages = ["📊 Dashboard", "📤 Upload Resume",
+                     "👥 Candidates", "💼 Job Posts", "🎯 Matches"]
+
+        for p in nav_pages:
+            # Key ensures each button is unique
+            if st.button(p, key=f"nav_{p}"):
+                st.session_state.page = p
 
         st.markdown("---")
         st.caption("Built with Streamlit & XGBoost")
 
-    # Route to appropriate page
+    # Route to appropriate page (based on session state)
+    page = st.session_state.get('page', "📊 Dashboard")
     if page == "📊 Dashboard":
         dashboard_page()
     elif page == "📤 Upload Resume":
