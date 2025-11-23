@@ -448,34 +448,35 @@ def manage_jobs_page():
 
             submitted = st.form_submit_button("Save Job Post", type="primary")
 
-            if submitted:
-                if not title or not description:
-                    st.error(
-                        "Please fill in required fields (Title and Description)")
-                else:
-                    job_data = {
-                        'title': title,
-                        'company': company,
-                        'location': location,
-                        'job_type': job_type,
-                        'description': description,
-                        'required_skills': required_skills,
-                        'required_education': required_education,
-                        'required_experience_years': req_experience,
-                        'salary_range': salary_range,
-                        'status': 'active'
-                    }
+        # Handle form submission outside the form
+        if submitted:
+            if not title or not description:
+                st.error(
+                    "Please fill in required fields (Title and Description)")
+            else:
+                job_data = {
+                    'title': title,
+                    'company': company,
+                    'location': location,
+                    'job_type': job_type,
+                    'description': description,
+                    'required_skills': required_skills,
+                    'required_education': required_education,
+                    'required_experience_years': req_experience,
+                    'salary_range': salary_range,
+                    'status': 'active'
+                }
 
-                    job_id = st.session_state.db.add_job_post(job_data)
-                    st.success(f"✅ Job post saved with ID: {job_id}")
+                job_id = st.session_state.db.add_job_post(job_data)
+                st.success(f"✅ Job post saved with ID: {job_id}")
 
-                    if st.session_state.matching_engine:
-                        if st.button("🔍 Match with All Candidates"):
-                            with st.spinner("Matching..."):
-                                matches = st.session_state.matching_engine.match_job_with_all_candidates(
-                                    job_id)
-                                st.success(
-                                    f"✅ Matched with {len(matches)} candidates!")
+                if st.session_state.matching_engine:
+                    if st.button("🔍 Match with All Candidates"):
+                        with st.spinner("Matching..."):
+                            matches = st.session_state.matching_engine.match_job_with_all_candidates(
+                                job_id)
+                            st.success(
+                                f"✅ Matched with {len(matches)} candidates!")
 
     with tab2:
         st.subheader("All Job Posts")

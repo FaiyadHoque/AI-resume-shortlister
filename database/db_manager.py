@@ -227,31 +227,17 @@ class Database:
     def update_job_status(self, job_id: int, status: str):
         """Update job post status"""
         query = "UPDATE job_posts SET status = ?, updated_at = ? WHERE id = ?"
+        self.execute_query(query, (status, datetime.now(), job_id))
 
-        conn = self.get_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute(query, (status, datetime.now(), job_id))
-            conn.commit()
-        finally:
-            conn.close()
-
-    @retry_on_lock(max_retries=5, delay=0.3)
+    @retry_on_lock(max_retries=10, delay=0.1)
     def delete_job_post(self, job_id: int):
         """Delete job post and associated match results"""
         query = "DELETE FROM job_posts WHERE id = ?"
-
-        conn = self.get_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute(query, (job_id,))
-            conn.commit()
-        finally:
-            conn.close()
+        self.execute_query(query, (job_id,))
 
     # ==================== MATCH RESULTS OPERATIONS ====================
 
-    @retry_on_lock(max_retries=5, delay=0.3)
+    @retry_on_lock(max_retries=10, delay=0.1)
     def save_match_result(self, candidate_id: int, job_id: int, match_score: float):
         """
         Save or update match result
@@ -281,16 +267,9 @@ class Database:
                 match_category = excluded.match_category,
                 matched_at = CURRENT_TIMESTAMP
         """
+        self.execute_query(query, (candidate_id, job_id, match_score, category))
 
-        conn = self.get_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute(
-                query, (candidate_id, job_id, match_score, category))
-            conn.commit()
-        finally:
-            conn.close()
-
+    @retry_on_lock(max_retries=10, delay=0.1)
     def get_matches_for_job(self, job_id: int, min_score: float = 0.0) -> List[Dict]:
         """
         Get all candidate matches for a job, sorted by score
@@ -314,12 +293,9 @@ class Database:
             WHERE m.job_id = ? AND m.match_score >= ?
             ORDER BY m.match_score DESC
         """
+        return self.execute_query(query, (job_id, min_score), fetch_all=True)
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (job_id, min_score))
-            return [dict(row) for row in cursor.fetchall()]
-
+    @retry_on_lock(max_retries=10, delay=0.1)
     def get_matches_for_candidate(self, candidate_id: int, min_score: float = 0.0) -> List[Dict]:
         """
         Get all job matches for a candidate, sorted by score
@@ -343,12 +319,9 @@ class Database:
             WHERE m.candidate_id = ? AND m.match_score >= ?
             ORDER BY m.match_score DESC
         """
+        return self.execute_query(query, (candidate_id, min_score), fetch_all=True)
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (candidate_id, min_score))
-            return [dict(row) for row in cursor.fetchall()]
-
+    @retry_on_lock(max_retries=10, delay=0.1)
     def get_top_matches(self, limit: int = 10) -> List[Dict]:
         """Get top matches across all candidates and jobs"""
         query = """
@@ -366,17 +339,15 @@ class Database:
             ORDER BY m.match_score DESC
             LIMIT ?
         """
-
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (limit,))
-            return [dict(row) for row in cursor.fetchall()]
+        return self.execute_query(query, (limit,), fetch_all=True)
 
     # ==================== STATISTICS ====================
 
+    @retry_on_lock(max_retries=10, delay=0.1)
     def get_statistics(self) -> Dict:
         """Get database statistics"""
-        with self.get_connection() as conn:
+        with self._connection_lock:
+            conn = self.get_connection()
             cursor = conn.cursor()
 
             # Count candidates
