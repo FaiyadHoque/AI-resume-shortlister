@@ -93,7 +93,11 @@ def init_session_state():
         st.session_state.db = get_db()
     if 'matching_engine' not in st.session_state:
         try:
-            st.session_state.matching_engine = MatchingEngine()
+            # Initialize with hybrid scoring (60% Cosine + 40% XGBoost)
+            st.session_state.matching_engine = MatchingEngine(
+                cosine_weight=0.6,
+                xgb_weight=0.4
+            )
         except Exception as e:
             st.error(f"Error loading matching model: {e}")
             st.session_state.matching_engine = None
@@ -358,26 +362,26 @@ def matching_page():
                         matches.sort(key=lambda x: x['score'], reverse=True)
                         
                         st.markdown("### Match Results")
-                        for i, match in enumerate(matches, 1):
-                            score_pct = match['score']
-                            
-                            if score_pct >= 70:
-                                css_class = "match-excellent"
-                                category = "Excellent"
-                            elif score_pct >= 55:
-                                css_class = "match-good"
-                                category = "Good"
-                            elif score_pct >= 40:
-                                css_class = "match-moderate"
-                                category = "Moderate"
-                            else:
-                                css_class = "match-poor"
-                                category = "Poor"
-                            
-                            st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
-                            st.write(f"**{i}. {match['job_name']}** - {score_pct:.1f}% ({category})")
-                            st.write(f"Job ID: {match['job_id']}")
-                            st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        # Separate shortlisted and rejected
+                        shortlisted = [m for m in matches if m['score'] >= 65]
+                        rejected = [m for m in matches if m['score'] < 65]
+                        
+                        if shortlisted:
+                            st.markdown("#### ✅ Shortlisted")
+                            for i, match in enumerate(shortlisted, 1):
+                                st.markdown('<div class="match-excellent">', unsafe_allow_html=True)
+                                st.write(f"**{i}. {match['job_name']}**")
+                                st.write(f"Job ID: {match['job_id']}")
+                                st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        if rejected:
+                            st.markdown("#### ❌ Not Shortlisted")
+                            for i, match in enumerate(rejected, 1):
+                                st.markdown('<div class="match-poor">', unsafe_allow_html=True)
+                                st.write(f"**{i}. {match['job_name']}**")
+                                st.write(f"Job ID: {match['job_id']}")
+                                st.markdown('</div>', unsafe_allow_html=True)
     
     with tab2:
         st.subheader("Find Resumes for a Job")
@@ -413,26 +417,26 @@ def matching_page():
                         matches.sort(key=lambda x: x['score'], reverse=True)
                         
                         st.markdown("### Match Results")
-                        for i, match in enumerate(matches, 1):
-                            score_pct = match['score']
-                            
-                            if score_pct >= 70:
-                                css_class = "match-excellent"
-                                category = "Excellent"
-                            elif score_pct >= 55:
-                                css_class = "match-good"
-                                category = "Good"
-                            elif score_pct >= 40:
-                                css_class = "match-moderate"
-                                category = "Moderate"
-                            else:
-                                css_class = "match-poor"
-                                category = "Poor"
-                            
-                            st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
-                            st.write(f"**{i}. {match['applicant_name']}** - {score_pct:.1f}% ({category})")
-                            st.write(f"Resume ID: {match['resume_id']}")
-                            st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        # Separate shortlisted and rejected
+                        shortlisted = [m for m in matches if m['score'] >= 65]
+                        rejected = [m for m in matches if m['score'] < 65]
+                        
+                        if shortlisted:
+                            st.markdown("#### ✅ Shortlisted")
+                            for i, match in enumerate(shortlisted, 1):
+                                st.markdown('<div class="match-excellent">', unsafe_allow_html=True)
+                                st.write(f"**{i}. {match['applicant_name']}**")
+                                st.write(f"Resume ID: {match['resume_id']}")
+                                st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        if rejected:
+                            st.markdown("#### ❌ Not Shortlisted")
+                            for i, match in enumerate(rejected, 1):
+                                st.markdown('<div class="match-poor">', unsafe_allow_html=True)
+                                st.write(f"**{i}. {match['applicant_name']}**")
+                                st.write(f"Resume ID: {match['resume_id']}")
+                                st.markdown('</div>', unsafe_allow_html=True)
 
 
 def main():

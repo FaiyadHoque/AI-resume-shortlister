@@ -26,21 +26,20 @@ def condense_job_posting(job_text: str) -> str:
     Extract and condense the following job posting into a clean, comma-separated format.
     
     RULES:
-    1. Extract ONLY: technical skills, qualifications, requirements, tools, technologies, job responsibilities
-    2. Remove: company names, company descriptions, "about us", motivational text, benefits, salary info
-    3. Format as comma-separated phrases (e.g., "Python, Machine Learning, 5 years experience, Bachelor's degree")
-    4. Use commas between different skills/requirements
-    5. Keep it concise - focus on keywords and essential qualifications
+    1. PRIORITIZE: Technical skills, software/tools, domain-specific technologies, industry-specific knowledge
+    2. INCLUDE: Job title, years of experience, specific certifications, education requirements, technical qualifications
+    3. MINIMIZE: Generic soft skills (leadership, communication, teamwork) - only include if specifically required
+    4. Remove: company names, company descriptions, "about us", motivational text, benefits, salary info
+    5. Format as comma-separated phrases emphasizing TECHNICAL and DOMAIN-SPECIFIC terms
     6. NO bullet points, NO line breaks, NO full sentences
-    7. Group related items together naturally
     
     Example output format:
-    "Marketing Manager, digital marketing strategy, 5+ years experience, SEO, SEM, Google Analytics, HubSpot, social media campaigns, content marketing, Bachelor's degree Marketing, team leadership, budget management, data analysis, campaign optimization"
+    "Marketing Manager, digital marketing, 5+ years marketing experience, SEO specialist, SEM campaigns, Google Analytics expert, HubSpot CRM, social media advertising, Facebook Ads, LinkedIn Ads, content marketing automation, email marketing platforms, web analytics tools, marketing automation software, Bachelor's degree Marketing, Google Analytics certified, paid advertising campaigns"
     
     JOB POSTING:
     {job_text}
     
-    CONDENSED OUTPUT (comma-separated keywords only):
+    CONDENSED OUTPUT (comma-separated keywords, emphasize technical/domain-specific terms):
     """
     
     response = model.generate_content(prompt)
@@ -70,21 +69,20 @@ def condense_resume(resume_text: str) -> str:
     Extract and condense the following resume into a clean, comma-separated format.
     
     RULES:
-    1. Extract ONLY: job titles, skills, technologies, tools, years of experience, education, certifications
-    2. Remove: company names, addresses, phone numbers, emails, objective statements, personal info
-    3. Format as comma-separated phrases (e.g., "Executive Chef, 10 years experience, menu development, kitchen management")
-    4. Use commas between different skills/qualifications
-    5. Keep it concise - focus on keywords and essential qualifications
+    1. PRIORITIZE: Job titles, technical skills, domain-specific expertise, specialized tools/software, industry-specific techniques
+    2. INCLUDE: Years of experience in specific roles, technical certifications, specialized education, technical competencies
+    3. MINIMIZE: Generic soft skills (leadership, communication, teamwork) - only include if it's a key qualification
+    4. Remove: company names, addresses, phone numbers, emails, objective statements, personal info
+    5. Format as comma-separated phrases emphasizing TECHNICAL and DOMAIN-SPECIFIC terms
     6. NO bullet points, NO line breaks, NO full sentences
-    7. Group related items together naturally
     
     Example output format:
-    "Executive Chef, 10 years culinary arts, menu development, kitchen management, food safety, recipe creation, Bachelor's Degree Culinary Arts, ServSafe certified, team leadership, inventory management"
+    "Executive Chef, 10 years culinary experience, French cuisine specialist, Italian cooking techniques, menu engineering, culinary arts degree, ServSafe certified, HACCP certified, sous vide cooking, molecular gastronomy, pastry techniques, butchery skills, wine pairing expertise"
     
     RESUME:
     {resume_text}
     
-    CONDENSED OUTPUT (comma-separated keywords only):
+    CONDENSED OUTPUT (comma-separated keywords, emphasize technical/domain-specific terms):
     """
     
     response = model.generate_content(prompt)
