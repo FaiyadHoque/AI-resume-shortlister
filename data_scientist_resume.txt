@@ -1,8 +1,1 @@
-Graduate analyst currently working as business analyst consultant. As an individual, I always try to overcome problems in the most analytical manner. I want to work on Machine Learning application problems that deal with real life scenarios. Business Analysis Machine Learning Requirement Gathering Data Analysis Artificial Intelligence Predictive Modeling Deep Learning Data Modeling Manual Testing Quality Assurance Python R SQL HTML Numpy Tensorflow Indian Institute of Technology (IIT), Mumbai B.Tech Mechanical Loyalty Rewards Management. Pvt. Ltd. Business Analyst Hardware & Software Installation
-System Monitoring
-IT Support
-Networking Expertise
-Mail Server Administration
-Security Management
-Troubleshooting & Repair
-Operations Support
+Data Scientist with experience in machine learning and predictive analytics passionate about solving complex problems Python R SQL Machine Learning Deep Learning Neural Networks TensorFlow PyTorch Scikit-learn Keras Statistical Analysis Predictive Modeling Regression Classification A/B Testing Hypothesis Testing Big Data Hadoop Spark Hive PySpark Data Visualization Tableau PowerBI Matplotlib Seaborn Natural Language Processing Computer Vision Image Recognition AWS Azure Google Cloud Docker Git Jupyter Stanford University Master of Science Data Science Indian Institute of Technology IIT Mumbai Bachelor of Technology Computer Science Tech Solutions Inc Senior Data Scientist Built predictive models customer churn Developed recommendation engine fraud detection system Analytics Corp Data Scientist Time series forecasting Exploratory data analysis Model optimization Presented insights to executives

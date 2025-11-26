@@ -3,19 +3,19 @@
   "embedding_model": "all-MiniLM-L6-v2",
   "embedding_dim": 384,
   "total_features": 771,
-  "training_samples": 14034,
-  "test_samples": 3509,
+  "training_samples": 14844,
+  "test_samples": 3711,
   "random_forest": {
-    "train_r2": 0.8613533584937767,
-    "test_r2": 0.8489410245330087,
-    "train_mae": 0.0711729938310044,
-    "test_mae": 0.07444544171920917
+    "train_r2": 0.8446306432130695,
+    "test_r2": 0.8334624785448852,
+    "train_mae": 0.07854817839035352,
+    "test_mae": 0.08110042866161679
   },
   "xgboost": {
-    "train_r2": 0.8592577733673993,
-    "test_r2": 0.8491739540766908,
-    "train_mae": 0.07442051977224425,
-    "test_mae": 0.0773051386778484
+    "train_r2": 0.8472761906015436,
+    "test_r2": 0.8374320275482166,
+    "train_mae": 0.07924181823568355,
+    "test_mae": 0.08138190167567246
   },
   "best_model": "xgboost"
 }
