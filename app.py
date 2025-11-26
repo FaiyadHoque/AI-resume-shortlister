@@ -372,6 +372,7 @@ def matching_page():
                             for i, match in enumerate(shortlisted, 1):
                                 st.markdown('<div class="match-excellent">', unsafe_allow_html=True)
                                 st.write(f"**{i}. {match['job_name']}**")
+                                st.write(f"Match Score: {match['score']}/100")
                                 st.write(f"Job ID: {match['job_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
                         
@@ -380,6 +381,7 @@ def matching_page():
                             for i, match in enumerate(rejected, 1):
                                 st.markdown('<div class="match-poor">', unsafe_allow_html=True)
                                 st.write(f"**{i}. {match['job_name']}**")
+                                st.write(f"Match Score: {match['score']}/100")
                                 st.write(f"Job ID: {match['job_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
     
@@ -427,6 +429,7 @@ def matching_page():
                             for i, match in enumerate(shortlisted, 1):
                                 st.markdown('<div class="match-excellent">', unsafe_allow_html=True)
                                 st.write(f"**{i}. {match['applicant_name']}**")
+                                st.write(f"Match Score: {match['score']}/100")
                                 st.write(f"Resume ID: {match['resume_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
                         
@@ -435,6 +438,7 @@ def matching_page():
                             for i, match in enumerate(rejected, 1):
                                 st.markdown('<div class="match-poor">', unsafe_allow_html=True)
                                 st.write(f"**{i}. {match['applicant_name']}**")
+                                st.write(f"Match Score: {match['score']}/100")
                                 st.write(f"Resume ID: {match['resume_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
 
