@@ -348,10 +348,12 @@ def matching_page():
                     with st.spinner("Matching..."):
                         matches = []
                         for job in jobs:
-                            score = st.session_state.matching_engine.predict_match(
+                            result = st.session_state.matching_engine.predict_match(
                                 resume['resume_description_model'],
-                                job['job_description_model']
+                                job['job_description_model'],
+                                resume_id=str(resume['id'])
                             )
+                            score = result['match_score'] if isinstance(result, dict) else result
                             matches.append({
                                 'job_name': job['job_name'],
                                 'job_id': job['id'],
@@ -371,7 +373,7 @@ def matching_page():
                             st.markdown("#### ✅ Shortlisted")
                             for i, match in enumerate(shortlisted, 1):
                                 st.markdown('<div class="match-excellent">', unsafe_allow_html=True)
-                                st.write(f"**{i}. {match['job_name']}**")
+                                st.write(f"**{i}. {match['job_name']}** - {match['score']:.1f}%")
                                 st.write(f"Job ID: {match['job_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
                         
@@ -379,7 +381,7 @@ def matching_page():
                             st.markdown("#### ❌ Not Shortlisted")
                             for i, match in enumerate(rejected, 1):
                                 st.markdown('<div class="match-poor">', unsafe_allow_html=True)
-                                st.write(f"**{i}. {match['job_name']}**")
+                                st.write(f"**{i}. {match['job_name']}** - {match['score']:.1f}%")
                                 st.write(f"Job ID: {match['job_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
     
@@ -403,10 +405,12 @@ def matching_page():
                     with st.spinner("Matching..."):
                         matches = []
                         for resume in resumes:
-                            score = st.session_state.matching_engine.predict_match(
+                            result = st.session_state.matching_engine.predict_match(
                                 resume['resume_description_model'],
-                                job['job_description_model']
+                                job['job_description_model'],
+                                resume_id=str(resume['id'])
                             )
+                            score = result['match_score'] if isinstance(result, dict) else result
                             matches.append({
                                 'applicant_name': resume['applicant_name'],
                                 'resume_id': resume['id'],
@@ -426,7 +430,7 @@ def matching_page():
                             st.markdown("#### ✅ Shortlisted")
                             for i, match in enumerate(shortlisted, 1):
                                 st.markdown('<div class="match-excellent">', unsafe_allow_html=True)
-                                st.write(f"**{i}. {match['applicant_name']}**")
+                                st.write(f"**{i}. {match['applicant_name']}** - {match['score']:.1f}%")
                                 st.write(f"Resume ID: {match['resume_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
                         
@@ -434,9 +438,211 @@ def matching_page():
                             st.markdown("#### ❌ Not Shortlisted")
                             for i, match in enumerate(rejected, 1):
                                 st.markdown('<div class="match-poor">', unsafe_allow_html=True)
-                                st.write(f"**{i}. {match['applicant_name']}**")
+                                st.write(f"**{i}. {match['applicant_name']}** - {match['score']:.1f}%")
                                 st.write(f"Resume ID: {match['resume_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
+
+
+def rank_shortlisted_by_experience(job_id: int):
+    """Rank ONLY already shortlisted resumes for a job by experience years"""
+    db = st.session_state.db
+    engine = st.session_state.matching_engine
+    
+    # Get job details
+    job = db.get_job(job_id)
+    if not job:
+        st.error("Job not found!")
+        return
+    
+    # Get ONLY shortlisted resumes from experience_data
+    if not hasattr(engine, 'experience_data') or not engine.experience_data:
+        st.warning("⚠️ No shortlisted resumes found. Please run matching first to shortlist candidates.")
+        st.info("💡 Go to 'Matching' tab and match this job with resumes to generate shortlist.")
+        return
+    
+    # Collect shortlisted resumes
+    shortlisted_resumes = []
+    
+    for resume_id, data in engine.experience_data.items():
+        try:
+            resume = db.get_resume(int(resume_id))
+            if resume:
+                shortlisted_resumes.append({
+                    'resume_id': resume_id,
+                    'applicant_name': resume['applicant_name'],
+                    'match_score': data['match_score'],
+                    'experience_years': data['experience_years'],
+                    
+                    'timestamp': data.get('timestamp', 'N/A')
+                })
+        except Exception as e:
+            continue
+    
+    if not shortlisted_resumes:
+        st.warning("No shortlisted resumes found.")
+        return
+    
+    # Sort by experience (DESCENDING - highest first), then by match score (DESCENDING)
+    shortlisted_resumes.sort(
+        key=lambda x: (x['experience_years'], x['match_score']),
+        reverse=True
+    )
+    
+    # Add rank
+    for rank, resume in enumerate(shortlisted_resumes, 1):
+        resume['rank'] = rank
+    
+    # Display header
+    st.success(f"✅ Ranked {len(shortlisted_resumes)} shortlisted candidates for **{job['job_name']}**")
+    
+    # Statistics
+    stats = engine.get_experience_stats()
+    if stats:
+        st.markdown("### 📊 Statistics")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Shortlisted", stats['total_shortlisted'])
+        with col2:
+            st.metric("Avg Experience", f"{stats['avg_experience']} yrs")
+        with col3:
+            st.metric("Max Experience", f"{stats['max_experience']} yrs")
+        with col4:
+            st.metric("Avg Match Score", f"{stats['avg_match_score']}%")
+    
+    st.markdown("---")
+    
+    # Create DataFrame
+    df = pd.DataFrame(shortlisted_resumes)
+    
+    # Check which columns exist and create display accordingly
+    available_columns = ['rank', 'applicant_name', 'experience_years', 'match_score']
+    display_names = ['Rank', 'Applicant Name', 'Experience (Years)', 'Match Score (%)']
+    
+    
+    
+    df_display = df[available_columns].copy()
+    df_display.columns = display_names
+    
+ # Replace lines 526-542 with this:
+
+    # Styling function with alternating colors
+    def highlight_rows(row):
+        if row['Rank'] == 1:
+            return ['background-color: #1e4cd9; font-weight: bold; color: white;'] * len(row)  # Dark Blue
+        elif row['Rank'] == 2:
+            return ['background-color: #567efa; font-weight: bold; color: white;'] * len(row)  # Medium Blue
+        elif row['Rank'] == 3:
+            return ['background-color: #91aaf8; font-weight: bold; color: white;'] * len(row)  # Light Blue
+        else:
+            # Alternating colors for rows 4+
+            if row.name % 2 == 0:
+                return ['background-color: #f0f2f6;'] * len(row)  # Light gray
+            else:
+                return ['background-color: #ffffff;'] * len(row)  # White
+
+    # Display table
+    st.markdown("### 🏆 Ranked Candidates (Most Experienced First)")
+    styled_df = df_display.style.apply(highlight_rows, axis=1)
+
+    st.dataframe(styled_df, use_container_width=True, height=400)
+    
+
+    
+    # Download button
+    csv = df_display.to_csv(index=False)
+    st.download_button(
+        label="📥 Download Ranked Results (CSV)",
+        data=csv,
+        file_name=f"ranked_{job['job_name'].replace(' ', '_')}.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+    
+    # Detailed view
+    st.markdown("---")
+    st.markdown("### 📋 Detailed Candidate View")
+    
+    if shortlisted_resumes:
+        selected = st.selectbox(
+            "Select candidate to view details",
+            options=[f"#{r['rank']} - {r['applicant_name']} ({r['experience_years']} years, {r['match_score']}%)" 
+                    for r in shortlisted_resumes],
+            key="detail_candidate_select"
+        )
+        
+        if selected:
+            rank = int(selected.split('#')[1].split(' - ')[0])
+            candidate = next(r for r in shortlisted_resumes if r['rank'] == rank)
+            resume = db.get_resume(int(candidate['resume_id']))
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.info(f"**🏅 Rank:** #{candidate['rank']}")
+                st.info(f"**👤 Name:** {candidate['applicant_name']}")
+            with col2:
+                st.success(f"**📊 Match Score:** {candidate['match_score']}%")
+                st.info(f"**💼 Experience:** {candidate['experience_years']} years")
+            with col3:
+                
+                st.info(f"**📅 Shortlisted:** {candidate['timestamp'][:10]}")
+            
+            if resume:
+                with st.expander("📄 View Full Resume"):
+                    st.text_area("Resume Content", resume['resume_description'], 
+                               height=300, disabled=True, key="detail_resume_view")
+
+
+def ranking_page():
+    """Page for ranking shortlisted candidates"""
+    st.markdown('<div class="main-header">🏆 Rank Shortlisted Candidates</div>', unsafe_allow_html=True)
+    
+    st.info("""
+    ℹ️ **How it works:**
+    1. Select a job posting
+    2. View all shortlisted candidates ranked by experience
+    3. Candidates are sorted by: Experience (years) → Match Score (%)
+    
+    ⚠️ Note: You must run matching first to generate shortlisted candidates.
+    """)
+    
+    st.markdown("---")
+    
+    # Job selection
+    jobs = st.session_state.db.get_all_jobs()
+    if not jobs:
+        st.warning("No jobs available. Please add jobs first!")
+        return
+    
+    job_options = {f"{job['job_name']} (ID: {job['id']})": job['id'] for job in jobs}
+    
+    # Use columns for better layout
+    col1, col2, col3 = st.columns([2, 1, 1])
+    
+    with col1:
+        selected_job = st.selectbox(
+            "📋 Select Job to View Rankings",
+            options=list(job_options.keys()),
+            key="rank_job_select"
+        )
+    
+    with col2:
+        st.write("")  # Spacing
+        if st.button("🏆 View Rankings", key="rank_button", 
+                    use_container_width=True, type="primary"):
+            if selected_job:
+                job_id = job_options[selected_job]
+                st.session_state.show_rankings = True
+                st.session_state.selected_job_id = job_id
+    
+    with col3:
+        st.write("")  # Spacing
+        if st.button("🔄 Clear", key="clear_button", use_container_width=True):
+            st.session_state.show_rankings = False
+    
+    # Display rankings if button was clicked
+    if st.session_state.get('show_rankings', False):
+        st.markdown("---")
+        rank_shortlisted_by_experience(st.session_state.get('selected_job_id'))
 
 
 def main():
@@ -457,7 +663,8 @@ def main():
             "Manage Resumes",
             "Add Job",
             "Manage Jobs",
-            "Matching"
+            "Matching",
+            "🏆 Rankings"
         ]
         
         for p in nav_pages:
@@ -482,6 +689,8 @@ def main():
         manage_jobs_page()
     elif page == "Matching":
         matching_page()
+    elif page == "🏆 Rankings":
+        ranking_page()
 
 
 if __name__ == "__main__":
