@@ -1,0 +1,15 @@
+# Ignore Python virtual environments
+new/
+myenv/
+env/
+venv/
+
+# Ignore python caches
+__pycache__/
+*.pyc
+
+# Ignore notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore system files
+.DS_Store
