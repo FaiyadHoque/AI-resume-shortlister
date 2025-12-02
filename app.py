@@ -25,22 +25,37 @@ st.set_page_config(
 # Custom CSS
 st.markdown("""
     <style>
+    /* Sidebar navigation buttons - remove boxes */
     [data-testid="stSidebar"] .stButton > button {
         width: 100% !important;
         text-align: left !important;
-        padding: 14px 20px !important;
-        border-radius: 8px !important;
+        padding: 12px 16px !important;
+        border-radius: 0px !important;
         font-size: 16px !important;
         font-weight: 500 !important;
-        margin-bottom: 8px !important;
-        transition: all 0.2s ease !important;
-        border: 2px solid rgba(128, 128, 128, 0.3) !important;
+        margin-bottom: 4px !important;
+        transition: all 0.3s ease !important;
+        border: none !important;
+        background-color: transparent !important;
+        color: inherit !important;
+        box-shadow: none !important;
     }
     
     [data-testid="stSidebar"] .stButton > button:hover {
-        transform: translateX(4px) !important;
-        border-color: rgba(102, 126, 234, 0.6) !important;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2) !important;
+        background-color: rgba(102, 126, 234, 0.1) !important;
+        transform: translateX(8px) !important;
+        padding-left: 24px !important;
+        border-left: 3px solid rgba(102, 126, 234, 0.8) !important;
+        color: #667eea !important;
+    }
+    
+    /* Active/clicked state */
+    [data-testid="stSidebar"] .stButton > button:active,
+    [data-testid="stSidebar"] .stButton > button:focus {
+        background-color: rgba(102, 126, 234, 0.15) !important;
+        border-left: 3px solid #667eea !important;
+        outline: none !important;
+        box-shadow: none !important;
     }
     
     .main-header {
@@ -318,6 +333,105 @@ def manage_jobs_page():
         st.info("No jobs found.")
 
 
+def display_ranking_results(job_id: int):
+    """Display ranking results for all shortlisted candidates in card format"""
+    db = st.session_state.db
+    engine = st.session_state.matching_engine
+    
+    # Get job details
+    job = db.get_job(job_id)
+    if not job:
+        st.error("Job not found!")
+        return
+    
+    # Get ONLY shortlisted resumes from experience_data
+    if not hasattr(engine, 'experience_data') or not engine.experience_data:
+        st.warning("⚠️ No shortlisted resumes found. Please run matching first to shortlist candidates.")
+        st.info("💡 Click 'Find Matching Resumes' button above to generate shortlist.")
+        return
+    
+    # Collect shortlisted resumes
+    shortlisted_resumes = []
+    
+    for resume_id, data in engine.experience_data.items():
+        try:
+            resume = db.get_resume(int(resume_id))
+            if resume:
+                shortlisted_resumes.append({
+                    'resume_id': resume_id,
+                    'applicant_name': resume['applicant_name'],
+                    'match_score': data['match_score'],
+                    'experience_years': data['experience_years'],
+                    'domain': data.get('domain', 'general'),
+                    'timestamp': data.get('timestamp', 'N/A')
+                })
+        except Exception as e:
+            continue
+    
+    if not shortlisted_resumes:
+        st.warning("No shortlisted resumes found.")
+        return
+    
+    # Sort by experience (DESCENDING), then by match score (DESCENDING)
+    shortlisted_resumes.sort(
+        key=lambda x: (x['experience_years'], x['match_score']),
+        reverse=True
+    )
+    
+    # Display header
+    st.success(f"✅ Ranked {len(shortlisted_resumes)} shortlisted candidates for **{job['job_name']}** by experience")
+    
+    # Statistics
+    stats = engine.get_experience_stats()
+    if stats:
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Shortlisted", stats['total_shortlisted'])
+        with col2:
+            st.metric("Avg Experience", f"{stats['avg_experience']} yrs")
+        with col3:
+            st.metric("Max Experience", f"{stats['max_experience']} yrs")
+        with col4:
+            st.metric("Avg Match Score", f"{stats['avg_match_score']}%")
+    
+    st.markdown("---")
+    
+    # Display ranked candidates in card format (like matching results)
+    st.markdown("### 🏆 Ranked by Experience (Most Experienced First)")
+    
+    for rank, candidate in enumerate(shortlisted_resumes, 1):
+        st.markdown('<div class="match-excellent">', unsafe_allow_html=True)
+        st.write(f"**{rank}. {candidate['applicant_name']}** - {candidate['match_score']:.1f}%")
+        st.write(f"Experience: {candidate['experience_years']} years")
+        st.write(f"Resume ID: {candidate['resume_id']}")
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Download option
+    st.markdown("### 📥 Download Rankings")
+    
+    # Create simple CSV data
+    csv_data = []
+    for rank, candidate in enumerate(shortlisted_resumes, 1):
+        csv_data.append({
+            'Rank': rank,
+            'Applicant Name': candidate['applicant_name'],
+            'Experience (Years)': candidate['experience_years'],
+            'Match Score (%)': candidate['match_score'],
+            'Resume ID': candidate['resume_id']
+        })
+    
+    df = pd.DataFrame(csv_data)
+    csv = df.to_csv(index=False)
+    
+    st.download_button(
+        label="📥 Download Ranked Results (CSV)",
+        data=csv,
+        file_name=f"ranked_{job['job_name'].replace(' ', '_')}.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
 def matching_page():
     """Match resumes with jobs"""
     st.markdown('<div class="main-header">Matching</div>', unsafe_allow_html=True)
@@ -392,11 +506,20 @@ def matching_page():
         if not jobs:
             st.info("No jobs available. Add jobs first!")
         else:
-            job_options = {f"{j['job_name']} (ID: {j['id']})": j for j in jobs}
+            job_options = {f"{j['job_name']} (ID: {j['id']})": j['id'] for j in jobs}
             selected_job = st.selectbox("Select Job", list(job_options.keys()))
+        
+            col1, col2 = st.columns([3, 1])
             
-            if st.button("Find Matching Resumes", type="primary", key="match_job"):
-                job = job_options[selected_job]
+            with col1:
+                match_button = st.button("Find Matching Resumes", type="primary", key="match_job", use_container_width=True)
+            
+            with col2:
+                rank_button = st.button("🏆 Rank by Experience", key="rank_exp", use_container_width=True)
+            
+            if match_button:
+                job_id = job_options[selected_job]
+                job = st.session_state.db.get_job(job_id)
                 resumes = st.session_state.db.get_all_resumes()
                 
                 if not resumes:
@@ -441,209 +564,15 @@ def matching_page():
                                 st.write(f"**{i}. {match['applicant_name']}** - {match['score']:.1f}%")
                                 st.write(f"Resume ID: {match['resume_id']}")
                                 st.markdown('</div>', unsafe_allow_html=True)
-
-
-def rank_shortlisted_by_experience(job_id: int):
-    """Rank ONLY already shortlisted resumes for a job by experience years"""
-    db = st.session_state.db
-    engine = st.session_state.matching_engine
-    
-    # Get job details
-    job = db.get_job(job_id)
-    if not job:
-        st.error("Job not found!")
-        return
-    
-    # Get ONLY shortlisted resumes from experience_data
-    if not hasattr(engine, 'experience_data') or not engine.experience_data:
-        st.warning("⚠️ No shortlisted resumes found. Please run matching first to shortlist candidates.")
-        st.info("💡 Go to 'Matching' tab and match this job with resumes to generate shortlist.")
-        return
-    
-    # Collect shortlisted resumes
-    shortlisted_resumes = []
-    
-    for resume_id, data in engine.experience_data.items():
-        try:
-            resume = db.get_resume(int(resume_id))
-            if resume:
-                shortlisted_resumes.append({
-                    'resume_id': resume_id,
-                    'applicant_name': resume['applicant_name'],
-                    'match_score': data['match_score'],
-                    'experience_years': data['experience_years'],
-                    
-                    'timestamp': data.get('timestamp', 'N/A')
-                })
-        except Exception as e:
-            continue
-    
-    if not shortlisted_resumes:
-        st.warning("No shortlisted resumes found.")
-        return
-    
-    # Sort by experience (DESCENDING - highest first), then by match score (DESCENDING)
-    shortlisted_resumes.sort(
-        key=lambda x: (x['experience_years'], x['match_score']),
-        reverse=True
-    )
-    
-    # Add rank
-    for rank, resume in enumerate(shortlisted_resumes, 1):
-        resume['rank'] = rank
-    
-    # Display header
-    st.success(f"✅ Ranked {len(shortlisted_resumes)} shortlisted candidates for **{job['job_name']}**")
-    
-    # Statistics
-    stats = engine.get_experience_stats()
-    if stats:
-        st.markdown("### 📊 Statistics")
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Total Shortlisted", stats['total_shortlisted'])
-        with col2:
-            st.metric("Avg Experience", f"{stats['avg_experience']} yrs")
-        with col3:
-            st.metric("Max Experience", f"{stats['max_experience']} yrs")
-        with col4:
-            st.metric("Avg Match Score", f"{stats['avg_match_score']}%")
-    
-    st.markdown("---")
-    
-    # Create DataFrame
-    df = pd.DataFrame(shortlisted_resumes)
-    
-    # Check which columns exist and create display accordingly
-    available_columns = ['rank', 'applicant_name', 'experience_years', 'match_score']
-    display_names = ['Rank', 'Applicant Name', 'Experience (Years)', 'Match Score (%)']
-    
-    
-    
-    df_display = df[available_columns].copy()
-    df_display.columns = display_names
-    
- # Replace lines 526-542 with this:
-
-    # Styling function with alternating colors
-    def highlight_rows(row):
-        if row['Rank'] == 1:
-            return ['background-color: #1e4cd9; font-weight: bold; color: white;'] * len(row)  # Dark Blue
-        elif row['Rank'] == 2:
-            return ['background-color: #567efa; font-weight: bold; color: white;'] * len(row)  # Medium Blue
-        elif row['Rank'] == 3:
-            return ['background-color: #91aaf8; font-weight: bold; color: white;'] * len(row)  # Light Blue
-        else:
-            # Alternating colors for rows 4+
-            if row.name % 2 == 0:
-                return ['background-color: #f0f2f6;'] * len(row)  # Light gray
-            else:
-                return ['background-color: #ffffff;'] * len(row)  # White
-
-    # Display table
-    st.markdown("### 🏆 Ranked Candidates (Most Experienced First)")
-    styled_df = df_display.style.apply(highlight_rows, axis=1)
-
-    st.dataframe(styled_df, use_container_width=True, height=400)
-    
-
-    
-    # Download button
-    csv = df_display.to_csv(index=False)
-    st.download_button(
-        label="📥 Download Ranked Results (CSV)",
-        data=csv,
-        file_name=f"ranked_{job['job_name'].replace(' ', '_')}.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
-    
-    # Detailed view
-    st.markdown("---")
-    st.markdown("### 📋 Detailed Candidate View")
-    
-    if shortlisted_resumes:
-        selected = st.selectbox(
-            "Select candidate to view details",
-            options=[f"#{r['rank']} - {r['applicant_name']} ({r['experience_years']} years, {r['match_score']}%)" 
-                    for r in shortlisted_resumes],
-            key="detail_candidate_select"
-        )
-        
-        if selected:
-            rank = int(selected.split('#')[1].split(' - ')[0])
-            candidate = next(r for r in shortlisted_resumes if r['rank'] == rank)
-            resume = db.get_resume(int(candidate['resume_id']))
             
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.info(f"**🏅 Rank:** #{candidate['rank']}")
-                st.info(f"**👤 Name:** {candidate['applicant_name']}")
-            with col2:
-                st.success(f"**📊 Match Score:** {candidate['match_score']}%")
-                st.info(f"**💼 Experience:** {candidate['experience_years']} years")
-            with col3:
+            if rank_button:
+                job_id = job_options[selected_job]  # Get the job ID (integer)
                 
-                st.info(f"**📅 Shortlisted:** {candidate['timestamp'][:10]}")
-            
-            if resume:
-                with st.expander("📄 View Full Resume"):
-                    st.text_area("Resume Content", resume['resume_description'], 
-                               height=300, disabled=True, key="detail_resume_view")
-
-
-def ranking_page():
-    """Page for ranking shortlisted candidates"""
-    st.markdown('<div class="main-header">🏆 Rank Shortlisted Candidates</div>', unsafe_allow_html=True)
-    
-    st.info("""
-    ℹ️ **How it works:**
-    1. Select a job posting
-    2. View all shortlisted candidates ranked by experience
-    3. Candidates are sorted by: Experience (years) → Match Score (%)
-    
-    ⚠️ Note: You must run matching first to generate shortlisted candidates.
-    """)
-    
-    st.markdown("---")
-    
-    # Job selection
-    jobs = st.session_state.db.get_all_jobs()
-    if not jobs:
-        st.warning("No jobs available. Please add jobs first!")
-        return
-    
-    job_options = {f"{job['job_name']} (ID: {job['id']})": job['id'] for job in jobs}
-    
-    # Use columns for better layout
-    col1, col2, col3 = st.columns([2, 1, 1])
-    
-    with col1:
-        selected_job = st.selectbox(
-            "📋 Select Job to View Rankings",
-            options=list(job_options.keys()),
-            key="rank_job_select"
-        )
-    
-    with col2:
-        st.write("")  # Spacing
-        if st.button("🏆 View Rankings", key="rank_button", 
-                    use_container_width=True, type="primary"):
-            if selected_job:
-                job_id = job_options[selected_job]
-                st.session_state.show_rankings = True
-                st.session_state.selected_job_id = job_id
-    
-    with col3:
-        st.write("")  # Spacing
-        if st.button("🔄 Clear", key="clear_button", use_container_width=True):
-            st.session_state.show_rankings = False
-    
-    # Display rankings if button was clicked
-    if st.session_state.get('show_rankings', False):
-        st.markdown("---")
-        rank_shortlisted_by_experience(st.session_state.get('selected_job_id'))
-
+                st.markdown("---")
+                st.markdown("### 🏆 Experience-Based Ranking")
+                
+                # Call the ranking function with integer ID
+                display_ranking_results(job_id)
 
 def main():
     """Main application"""
@@ -663,8 +592,7 @@ def main():
             "Manage Resumes",
             "Add Job",
             "Manage Jobs",
-            "Matching",
-            "🏆 Rankings"
+            "Matching"
         ]
         
         for p in nav_pages:
@@ -689,8 +617,6 @@ def main():
         manage_jobs_page()
     elif page == "Matching":
         matching_page()
-    elif page == "🏆 Rankings":
-        ranking_page()
 
 
 if __name__ == "__main__":
