@@ -334,7 +334,7 @@ def manage_jobs_page():
 
 
 def display_ranking_results(job_id: int):
-    """Display ranking results for all shortlisted candidates in card format"""
+    """Display ranking results for ONLY shortlisted candidates for THIS specific job"""
     db = st.session_state.db
     engine = st.session_state.matching_engine
     
@@ -344,32 +344,40 @@ def display_ranking_results(job_id: int):
         st.error("Job not found!")
         return
     
-    # Get ONLY shortlisted resumes from experience_data
-    if not hasattr(engine, 'experience_data') or not engine.experience_data:
-        st.warning("⚠️ No shortlisted resumes found. Please run matching first to shortlist candidates.")
-        st.info("💡 Click 'Find Matching Resumes' button above to generate shortlist.")
+    # Get all resumes and re-match them to get shortlisted ones for THIS job
+    resumes = db.get_all_resumes()
+    
+    if not resumes:
+        st.warning("No resumes available.")
         return
     
-    # Collect shortlisted resumes
+    # Collect ONLY shortlisted resumes for THIS specific job
     shortlisted_resumes = []
     
-    for resume_id, data in engine.experience_data.items():
-        try:
-            resume = db.get_resume(int(resume_id))
-            if resume:
+    with st.spinner("Ranking shortlisted candidates..."):
+        for resume in resumes:
+            # Re-run matching for this specific job
+            result = engine.predict_match(
+                resume['resume_description_model'],
+                job['job_description_model'],
+                resume_id=str(resume['id'])
+            )
+            
+            score = result['match_score'] if isinstance(result, dict) else result
+            
+            # ONLY include if shortlisted (score >= 65)
+            if score >= 65:
+                experience_years = result.get('experience_years', 0) if isinstance(result, dict) else 0
+                
                 shortlisted_resumes.append({
-                    'resume_id': resume_id,
+                    'resume_id': resume['id'],
                     'applicant_name': resume['applicant_name'],
-                    'match_score': data['match_score'],
-                    'experience_years': data['experience_years'],
-                    'domain': data.get('domain', 'general'),
-                    'timestamp': data.get('timestamp', 'N/A')
+                    'match_score': score,
+                    'experience_years': experience_years
                 })
-        except Exception as e:
-            continue
     
     if not shortlisted_resumes:
-        st.warning("No shortlisted resumes found.")
+        st.warning("No shortlisted resumes found for this job.")
         return
     
     # Sort by experience (DESCENDING), then by match score (DESCENDING)
@@ -382,21 +390,23 @@ def display_ranking_results(job_id: int):
     st.success(f"✅ Ranked {len(shortlisted_resumes)} shortlisted candidates for **{job['job_name']}** by experience")
     
     # Statistics
-    stats = engine.get_experience_stats()
-    if stats:
+    if shortlisted_resumes:
+        experiences = [r['experience_years'] for r in shortlisted_resumes]
+        scores = [r['match_score'] for r in shortlisted_resumes]
+        
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Total Shortlisted", stats['total_shortlisted'])
+            st.metric("Total Shortlisted", len(shortlisted_resumes))
         with col2:
-            st.metric("Avg Experience", f"{stats['avg_experience']} yrs")
+            st.metric("Avg Experience", f"{sum(experiences)/len(experiences):.1f} yrs")
         with col3:
-            st.metric("Max Experience", f"{stats['max_experience']} yrs")
+            st.metric("Max Experience", f"{max(experiences)} yrs")
         with col4:
-            st.metric("Avg Match Score", f"{stats['avg_match_score']}%")
+            st.metric("Avg Match Score", f"{sum(scores)/len(scores):.1f}%")
     
     st.markdown("---")
     
-    # Display ranked candidates in card format (like matching results)
+    # Display ranked candidates in card format
     st.markdown("### 🏆 Ranked by Experience (Most Experienced First)")
     
     for rank, candidate in enumerate(shortlisted_resumes, 1):

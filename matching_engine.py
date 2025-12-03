@@ -130,45 +130,51 @@ class MatchingEngine:
 
     def _extract_experience(self, resume_text: str) -> int:
         """
-        Extract years of experience from resume text.
-        Simple pattern matching for common formats like "5 years experience"
+        Extract total years of experience from condensed resume text.
+        For condensed format: looks ONLY at the beginning for explicit experience mention.
+        Example: "Senior Game Developer, 8 years game development experience, ..."
         """
         text_lower = resume_text.lower()
         
-        # Pattern: "X years of experience" or "X+ years experience"
-        patterns = [
-            r'(\d+)\+?\s*years?\s*(?:of)?\s*experience',
-            r'experience\s*[:\-]?\s*(\d+)\+?\s*years?',
-            r'(\d+)\+?\s*years?\s*(?:in|of|with|as)',
+        # For condensed resumes, check ONLY the first 200 characters (intro section)
+        intro_section = text_lower[:200]
+        
+        # Pattern 1: Explicit years in intro (e.g., "8 years experience", "5 years game development")
+        explicit_patterns = [
+            r'(\d+)\+?\s*years?\s+(?:\w+\s+)?(?:\w+\s+)?experience',  # "8 years game development experience"
+            r'(\d+)\+?\s*years?\s+(?:of\s+)?experience',              # "8 years of experience"
+            r'(\d+)\+?\s*years?\s*(?:in|as|with)',                    # "8 years in...", "8 years as..."
         ]
         
-        years_found = []
-        for pattern in patterns:
-            matches = re.findall(pattern, text_lower)
-            if matches:
-                for match in matches:
-                    try:
-                        years = int(match)
-                        if 0 < years <= 50:  # Sanity check
-                            years_found.append(years)
-                    except:
-                        pass
+        for pattern in explicit_patterns:
+            match = re.search(pattern, intro_section)
+            if match:
+                try:
+                    years = int(match.group(1))
+                    if 0 < years <= 50:  # Sanity check
+                        print(f"✓ Found in intro: {years} years")
+                        return years
+                except (ValueError, IndexError):
+                    continue
         
-        if years_found:
-            return max(years_found)  # Return highest years mentioned
-        
-        # Fallback: Try to infer from seniority level
-        if 'senior' in text_lower and 'junior' not in text_lower:
+        # Pattern 2: Seniority level inference (if no explicit years found)
+        if 'senior' in intro_section and 'junior' not in intro_section:
+            print(f"✓ Inferred from 'senior': 5 years")
             return 5
-        elif 'mid-level' in text_lower or 'mid level' in text_lower or 'intermediate' in text_lower:
-            return 3
-        elif 'entry level' in text_lower or 'junior' in text_lower or 'graduate' in text_lower:
-            return 1
-        elif 'lead' in text_lower or 'principal' in text_lower or 'staff' in text_lower:
+        elif 'lead' in intro_section or 'principal' in intro_section or 'staff' in intro_section:
+            print(f"✓ Inferred from 'lead/principal': 8 years")
             return 8
-        elif 'director' in text_lower or 'vp' in text_lower or 'vice president' in text_lower:
+        elif 'director' in intro_section or 'vp' in intro_section or 'vice president' in intro_section:
+            print(f"✓ Inferred from 'director/vp': 10 years")
             return 10
+        elif 'mid-level' in intro_section or 'mid level' in intro_section or 'intermediate' in intro_section:
+            print(f"✓ Inferred from 'mid-level': 3 years")
+            return 3
+        elif 'entry level' in intro_section or 'junior' in intro_section or 'graduate' in intro_section:
+            print(f"✓ Inferred from 'junior': 1 year")
+            return 1
         
+        print(f"✗ No experience found in intro")
         return 0
 
     def _detect_domain(self, text: str) -> str:
